@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from backend.api.blynk import router as blynk_router
 from backend.api.devices import router as devices_router
-from backend.api.reading import router as reading_router
+from backend.api.readings import router as reading_router
 
 
 router = APIRouter()
