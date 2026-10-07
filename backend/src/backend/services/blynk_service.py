@@ -1,8 +1,8 @@
+from backend.schemas.blynk import BlynkStatus
 import httpx
+from fastapi import HTTPException
 
 from backend.core.config import settings
-from backend.schemas.blynk import BlynkStatus
-from fastapi import HTTPException
 
 
 class BlynkService:
@@ -43,6 +43,46 @@ class BlynkService:
                 detail="Unable to connect to Blynk",
             )
 
+    async def update_virtual_pin(
+        self,
+        pin: str,
+        value: int,
+    ) -> None:
+        url = f"{settings.blynk_base_url}/external/api/update"
+
+        params = {
+            "token": settings.blynk_auth_token,
+            pin: value,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    url,
+                    params=params,
+                )
+
+            response.raise_for_status()
+
+        except httpx.TimeoutException:
+            raise HTTPException(
+                status_code=504,
+                detail="Blynk request timed out",
+            )
+
+        except httpx.HTTPStatusError:
+            raise HTTPException(
+                status_code=502,
+                detail="Blynk API returned an error",
+            )
+
+        except httpx.RequestError:
+            raise HTTPException(
+                status_code=502,
+                detail="Unable to connect to Blynk",
+            )
+            
+            
     async def get_status(self) -> BlynkStatus:
         data = await self.get_all_datastreams()
 
