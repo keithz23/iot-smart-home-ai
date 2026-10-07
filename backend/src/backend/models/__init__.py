@@ -1,3 +1,8 @@
 from backend.models.device import Device
 
-__all__ = ["Device"]
+from backend.models.sensor_reading import SensorReading
+
+__all__ = [
+    "Device",
+    "SensorReading",
+]
