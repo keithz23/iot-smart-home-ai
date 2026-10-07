@@ -18,6 +18,7 @@ import { DeviceSelector } from "./device-selector";
 import { SensorCard } from "./sensor-card";
 import { EnvironmentChart } from "./environment-chart";
 import { SensorHistoryTable } from "./sensor-history-table";
+import { DeviceControl } from "./device-control";
 
 export function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -387,6 +388,12 @@ export function Dashboard() {
             </div>
           </div>
         </section>
+
+        <DeviceControl
+          roof={status?.roof ?? null}
+          fan={status?.fan ?? null}
+          led={status?.led ?? null}
+        />
 
         {/* Sensor History Table */}
         <section className="rounded-xl border bg-white p-5">

@@ -61,3 +61,15 @@ export async function getReadingHistory(
 
   return data;
 }
+
+export async function controlDevice(
+  device: "roof" | "fan" | "led",
+  value: 0 | 1,
+) {
+  const { data } = await api.post("/blynk/control", {
+    device,
+    value,
+  });
+
+  return data;
+}
