@@ -82,22 +82,39 @@ export function Dashboard() {
 
   // Load Blynk status
   useEffect(() => {
+    let isMounted = true;
+
     async function loadStatus() {
       try {
         setIsLoadingStatus(true);
 
         const data = await getBlynkStatus();
 
-        setStatus(data);
+        if (isMounted) {
+          setStatus(data);
+        }
       } catch {
-        setError("Unable to load Blynk status.");
+        if (isMounted) {
+          setError("Unable to load Blynk status.");
+        }
       } finally {
-        setIsLoadingStatus(false);
+        if (isMounted) {
+          setIsLoadingStatus(false);
+        }
       }
     }
 
     loadStatus();
-  }, [selectedDeviceId]);
+
+    const intervalId = window.setInterval(() => {
+      loadStatus();
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   // Load latest database reading
   useEffect(() => {
@@ -173,6 +190,15 @@ export function Dashboard() {
 
     loadReadings();
   }, [selectedDeviceId, currentPage]);
+
+  async function refreshBlynkStatus() {
+    try {
+      const data = await getBlynkStatus();
+      setStatus(data);
+    } catch {
+      setError("Unable to refresh Blynk status.");
+    }
+  }
 
   if (isLoadingDevices) {
     return (
@@ -393,6 +419,7 @@ export function Dashboard() {
           roof={status?.roof ?? null}
           fan={status?.fan ?? null}
           led={status?.led ?? null}
+          onControlSuccess={refreshBlynkStatus}
         />
 
         {/* Sensor History Table */}

@@ -11,6 +11,8 @@ interface DeviceControlProps {
   roof: number | null;
   fan: number | null;
   led: number | null;
+  onControlSuccess: () => Promise<void>;
+  isLoading?: boolean;
 }
 
 const controls: {
@@ -35,7 +37,13 @@ const controls: {
   },
 ];
 
-export function DeviceControl({ roof, fan, led }: DeviceControlProps) {
+export function DeviceControl({
+  roof,
+  fan,
+  led,
+  onControlSuccess,
+  isLoading = false,
+}: DeviceControlProps) {
   const [values, setValues] = useState<Record<ControlDevice, number>>({
     roof: roof ?? 0,
     fan: fan ?? 0,
@@ -66,10 +74,7 @@ export function DeviceControl({ roof, fan, led }: DeviceControlProps) {
 
       await controlDevice(device, nextValue);
 
-      setValues((prev) => ({
-        ...prev,
-        [device]: nextValue,
-      }));
+      await onControlSuccess();
     } catch {
       setError("Không thể điều khiển thiết bị.");
     } finally {
@@ -107,7 +112,7 @@ export function DeviceControl({ roof, fan, led }: DeviceControlProps) {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         {controls.map((control) => {
           const isOn = values[control.device] === 1;
-          const isLoading = loadingDevice === control.device;
+          const isControlLoading = loadingDevice === control.device;
 
           const Icon = control.icon;
 
@@ -135,12 +140,16 @@ export function DeviceControl({ roof, fan, led }: DeviceControlProps) {
                 {/* Toggle */}
                 <button
                   type="button"
-                  disabled={isLoading}
+                  disabled={isLoading || isControlLoading}
                   onClick={() => handleToggle(control.device)}
                   aria-label={`Toggle ${control.label}`}
                   className={`relative h-7 w-12 rounded-full transition-colors ${
                     isOn ? "bg-sky-500" : "bg-slate-300"
-                  } ${isLoading ? "cursor-wait opacity-60" : "cursor-pointer"}`}
+                  } ${
+                    isLoading || isControlLoading
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <span
                     className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -166,7 +175,13 @@ export function DeviceControl({ roof, fan, led }: DeviceControlProps) {
                       isOn ? "text-emerald-600" : "text-slate-500"
                     }`}
                   >
-                    {isLoading ? "Updating..." : isOn ? "Đang bật" : "Đang tắt"}
+                    {isLoading
+                      ? "Đang đồng bộ..."
+                      : isControlLoading
+                        ? "Đang cập nhật..."
+                        : isOn
+                          ? "Đang bật"
+                          : "Đang tắt"}
                   </span>
                 </div>
               </div>
