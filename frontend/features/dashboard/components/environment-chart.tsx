@@ -18,7 +18,7 @@ interface EnvironmentChartProps {
 
 export function EnvironmentChart({ readings }: EnvironmentChartProps) {
   const data = readings.map((reading) => ({
-    time: new Date(reading.recorded_at).toLocaleTimeString([], {
+    time: new Date(reading.recorded_at).toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
     }),

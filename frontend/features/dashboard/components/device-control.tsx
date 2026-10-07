@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Home, Lightbulb, Fan } from "lucide-react";
 
 import { controlDevice } from "@/features/dashboard/api";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 type ControlDevice = "roof" | "fan" | "led";
 
@@ -83,12 +85,12 @@ export function DeviceControl({
   }
 
   return (
-    <section className="rounded-2xl border bg-white p-6 shadow-sm">
+    <Card className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">
-            Device Control
+            Điều khiển thiết bị
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -96,9 +98,9 @@ export function DeviceControl({
           </p>
         </div>
 
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600">
-          Connected
-        </span>
+        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-600">
+          Đã kết nối
+        </Badge>
       </div>
 
       {/* Error */}
@@ -189,6 +191,6 @@ export function DeviceControl({
           );
         })}
       </div>
-    </section>
+    </Card>
   );
 }

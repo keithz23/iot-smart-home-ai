@@ -1,6 +1,7 @@
 "use client";
 
 import type { Device } from "@/types/device";
+import { Select } from "@/components/ui/select";
 
 interface DeviceSelectorProps {
   devices: Device[];
@@ -16,19 +17,19 @@ export function DeviceSelector({
   return (
     <div className="flex items-center gap-3">
       <label htmlFor="device" className="text-sm font-medium text-slate-700">
-        Device
+        Thiết bị
       </label>
 
-      <select
+      <Select
         id="device"
         value={selectedDeviceId ?? ""}
         onChange={(event) => {
           onChange(Number(event.target.value));
         }}
-        className="rounded-lg border bg-white px-3 py-2 text-sm outline-none"
+        className="h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-500"
       >
         <option value="" disabled>
-          Select device
+          Chọn thiết bị
         </option>
 
         {devices.map((device) => (
@@ -37,10 +38,10 @@ export function DeviceSelector({
             value={device.id}
             disabled={!device.is_active}
           >
-            {device.name} — {device.location ?? "Unknown location"}
+            {device.name} — {device.location ?? "Không rõ vị trí"}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

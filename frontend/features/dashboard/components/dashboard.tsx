@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useDashboardQueries } from "@/features/dashboard/hooks/use-dashboard-queries";
+import { Alert } from "@/components/ui/alert";
 import {
-  getBlynkStatus,
-  getDevices,
-  getLatestReading,
-  getReadingHistory,
-  getReadings,
-} from "@/features/dashboard/api";
-
-import type { BlynkStatus, SensorReading } from "@/types/sensor";
-
-import type { Device } from "@/types/device";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { DeviceSelector } from "./device-selector";
 import { SensorCard } from "./sensor-card";
@@ -21,189 +19,29 @@ import { SensorHistoryTable } from "./sensor-history-table";
 import { DeviceControl } from "./device-control";
 
 export function Dashboard() {
-  const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(null);
-
-  const [status, setStatus] = useState<BlynkStatus | null>(null);
-
-  const [latestReading, setLatestReading] = useState<SensorReading | null>(
-    null,
-  );
-
-  // Used for EnvironmentChart
-  const [history, setHistory] = useState<SensorReading[]>([]);
-
-  // Used for SensorHistoryTable pagination
-  const [readings, setReadings] = useState<SensorReading[]>([]);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
-
-  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
-
-  const [isLoadingLatest, setIsLoadingLatest] = useState(false);
-
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  const [isLoadingReadings, setIsLoadingReadings] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-
-  // Reset table page when changing device
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedDeviceId]);
-
-  // Load devices
-  useEffect(() => {
-    async function loadDevices() {
-      try {
-        setIsLoadingDevices(true);
-        setError(null);
-
-        const data = await getDevices();
-
-        setDevices(data);
-
-        if (data.length > 0) {
-          setSelectedDeviceId(data[0].id);
-        }
-      } catch {
-        setError("Unable to load devices.");
-      } finally {
-        setIsLoadingDevices(false);
-      }
-    }
-
-    loadDevices();
-  }, []);
-
-  // Load Blynk status
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadStatus() {
-      try {
-        setIsLoadingStatus(true);
-
-        const data = await getBlynkStatus();
-
-        if (isMounted) {
-          setStatus(data);
-        }
-      } catch {
-        if (isMounted) {
-          setError("Unable to load Blynk status.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingStatus(false);
-        }
-      }
-    }
-
-    loadStatus();
-
-    const intervalId = window.setInterval(() => {
-      loadStatus();
-    }, 5000);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
-  // Load latest database reading
-  useEffect(() => {
-    if (selectedDeviceId === null) {
-      setLatestReading(null);
-      return;
-    }
-
-    async function loadLatestReading() {
-      try {
-        setIsLoadingLatest(true);
-
-        const data = await getLatestReading(selectedDeviceId);
-
-        setLatestReading(data);
-      } catch {
-        setError("Unable to load latest reading.");
-      } finally {
-        setIsLoadingLatest(false);
-      }
-    }
-
-    loadLatestReading();
-  }, [selectedDeviceId]);
-
-  // Load history for chart
-  useEffect(() => {
-    if (selectedDeviceId === null) {
-      setHistory([]);
-      return;
-    }
-
-    async function loadHistory() {
-      try {
-        setIsLoadingHistory(true);
-
-        const data = await getReadingHistory(selectedDeviceId, {
-          limit: 100,
-        });
-
-        setHistory(data);
-      } catch {
-        setError("Unable to load historical data.");
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    }
-
-    loadHistory();
-  }, [selectedDeviceId]);
-
-  // Load paginated readings for table
-  useEffect(() => {
-    if (selectedDeviceId === null) {
-      setReadings([]);
-      return;
-    }
-
-    async function loadReadings() {
-      try {
-        setIsLoadingReadings(true);
-
-        const data = await getReadings(currentPage, 10, selectedDeviceId);
-
-        setReadings(data.items);
-        setTotalPages(data.total_pages);
-      } catch {
-        setError("Unable to load sensor readings.");
-      } finally {
-        setIsLoadingReadings(false);
-      }
-    }
-
-    loadReadings();
-  }, [selectedDeviceId, currentPage]);
-
-  async function refreshBlynkStatus() {
-    try {
-      const data = await getBlynkStatus();
-      setStatus(data);
-    } catch {
-      setError("Unable to refresh Blynk status.");
-    }
-  }
+  const {
+    devices,
+    status,
+    latestReading,
+    history,
+    readings,
+    totalPages,
+    isLoadingDevices,
+    isLoadingLatest,
+    isLoadingHistory,
+    isLoadingReadings,
+    error,
+    refreshStatus,
+  } = useDashboardQueries(selectedDeviceId, currentPage);
+  const activeDeviceId =
+    selectedDeviceId ?? (devices.length > 0 ? devices[0].id : null);
 
   if (isLoadingDevices) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Loading dashboard...</p>
+        <p className="text-sm text-slate-500">Đang tải bảng điều khiển...</p>
       </main>
     );
   }
@@ -212,12 +50,10 @@ export function Dashboard() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <div className="rounded-xl border bg-white p-8 text-center">
-          <h1 className="text-xl font-semibold text-slate-900">
-            No devices found
-          </h1>
+          <h1 className="text-xl font-semibold text-slate-900">Không tìm thấy thiết bị</h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Add a device before using the dashboard.
+            Hãy thêm thiết bị trước khi sử dụng bảng điều khiển.
           </p>
         </div>
       </main>
@@ -227,74 +63,68 @@ export function Dashboard() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
-              Smart Home Dashboard
+              Bảng điều khiển nhà thông minh
             </h1>
-
             <p className="mt-1 text-sm text-slate-500">
-              Monitor your home environment in real time
+              Theo dõi môi trường trong nhà theo thời gian thực
             </p>
           </div>
-
           <DeviceSelector
             devices={devices}
-            selectedDeviceId={selectedDeviceId}
-            onChange={setSelectedDeviceId}
+            selectedDeviceId={activeDeviceId}
+            onChange={(deviceId) => {
+              setSelectedDeviceId(deviceId);
+              setCurrentPage(1);
+            }}
           />
         </header>
 
         {/* Error */}
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <Alert className="border-red-200 bg-red-50 text-red-700">
             <p className="text-sm text-red-700">{error}</p>
-          </div>
+          </Alert>
         )}
 
         {/* Latest Reading */}
-        <section className="rounded-xl border bg-white p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Latest Reading
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Latest sensor data stored in the database
-              </p>
-            </div>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <div><CardTitle>Dữ liệu mới nhất</CardTitle>
+              <CardDescription>Dữ liệu cảm biến mới nhất được lưu trong cơ sở dữ liệu</CardDescription></div>
 
             <span className="text-xs text-slate-400">
               {latestReading
-                ? new Date(latestReading.recorded_at).toLocaleString()
+                ? new Date(latestReading.recorded_at).toLocaleString("vi-VN")
                 : "--"}
             </span>
-          </div>
+          </CardHeader>
 
+          <CardContent>
           {isLoadingLatest ? (
             <div className="mt-5 flex h-32 items-center justify-center">
               <p className="text-sm text-slate-400">
-                Loading latest reading...
+                Đang tải dữ liệu mới nhất...
               </p>
             </div>
           ) : latestReading ? (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SensorCard
-                label="Temperature"
+                label="Nhiệt độ"
                 value={latestReading.temperature}
                 unit="°C"
               />
 
               <SensorCard
-                label="Humidity"
+                label="Độ ẩm"
                 value={latestReading.humidity}
                 unit="%"
               />
 
               <SensorCard
-                label="Light"
+                label="Ánh sáng"
                 value={latestReading.light}
                 unit="ADC"
               />
@@ -304,137 +134,128 @@ export function Dashboard() {
           ) : (
             <div className="mt-5 flex h-32 items-center justify-center rounded-lg bg-slate-50">
               <p className="text-sm text-slate-400">
-                No latest reading available
+                Chưa có dữ liệu mới nhất
               </p>
             </div>
           )}
-        </section>
+          </CardContent>
+        </Card>
 
-        {/* Current Blynk Sensor Status */}
+        {/* Trạng thái cảm biến Blynk hiện tại */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SensorCard
-            label="Temperature"
+            label="Nhiệt độ"
             value={status?.temperature ?? null}
             unit="°C"
           />
 
           <SensorCard
-            label="Humidity"
+            label="Độ ẩm"
             value={status?.humidity ?? null}
             unit="%"
           />
 
-          <SensorCard label="Light" value={status?.light ?? null} unit="ADC" />
+          <SensorCard label="Ánh sáng" value={status?.light ?? null} unit="ADC" />
 
-          <SensorCard label="Gas" value={status?.gas ?? null} unit="ADC" />
+          <SensorCard label="Khí gas" value={status?.gas ?? null} unit="ADC" />
         </section>
 
-        {/* Chart + Device Status */}
+        {/* Biểu đồ và trạng thái thiết bị */}
         <section className="grid gap-6 lg:grid-cols-3">
           {/* Environment History */}
-          <div className="rounded-xl border bg-white p-5 lg:col-span-2">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Environment History
-            </h2>
+          <Card className="lg:col-span-2">
+            <CardHeader><CardTitle>Lịch sử môi trường</CardTitle>
+              <CardDescription>Nhiệt độ và độ ẩm theo thời gian</CardDescription>
+            </CardHeader>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Temperature and humidity over time
-            </p>
-
-            <div className="mt-4">
+            <CardContent>
               {isLoadingHistory ? (
                 <div className="flex h-80 items-center justify-center rounded-lg bg-slate-50">
-                  <p className="text-sm text-slate-400">Loading history...</p>
+                  <p className="text-sm text-slate-400">Đang tải lịch sử...</p>
                 </div>
               ) : history.length > 0 ? (
                 <EnvironmentChart readings={history} />
               ) : (
                 <div className="flex h-80 items-center justify-center rounded-lg bg-slate-50">
                   <p className="text-sm text-slate-400">
-                    No historical data available
+                    Chưa có dữ liệu lịch sử
                   </p>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Device Status */}
-          <div className="rounded-xl border bg-white p-5">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Device Status
-            </h2>
+          <Card>
+            <CardHeader><CardTitle>Trạng thái thiết bị</CardTitle></CardHeader>
 
-            <div className="mt-4 space-y-4">
+            <CardContent className="space-y-4">
               <StatusRow
-                label="Door"
+                label="Cửa"
                 value={
                   status?.door == null
                     ? "--"
                     : status.door === 1
-                      ? "Open"
-                      : "Closed"
+                      ? "Mở"
+                      : "Đóng"
                 }
               />
 
               <StatusRow
-                label="Fan"
+                label="Quạt"
                 value={
                   status?.fan == null ? "--" : status.fan === 1 ? "ON" : "OFF"
                 }
               />
 
               <StatusRow
-                label="LED"
+                label="Đèn LED"
                 value={
                   status?.led == null ? "--" : status.led === 1 ? "ON" : "OFF"
                 }
               />
 
               <StatusRow
-                label="Person"
+                label="Con người"
                 value={
                   status?.person == null
                     ? "--"
                     : status.person === 1
-                      ? "Detected"
-                      : "None"
+                      ? "Phát hiện"
+                      : "Không có"
                 }
               />
 
               <StatusRow
-                label="Rain"
+                label="Mưa"
                 value={
                   status?.rain == null
                     ? "--"
                     : status.rain === 1
-                      ? "Detected"
-                      : "None"
+                      ? "Phát hiện"
+                      : "Không có"
                 }
               />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </section>
 
         <DeviceControl
           roof={status?.roof ?? null}
           fan={status?.fan ?? null}
           led={status?.led ?? null}
-          onControlSuccess={refreshBlynkStatus}
+          onControlSuccess={async () => {
+            await refreshStatus();
+          }}
         />
 
-        {/* Sensor History Table */}
-        <section className="rounded-xl border bg-white p-5">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Sensor History
-            </h2>
+        {/* Bảng lịch sử cảm biến */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader><CardTitle>Lịch sử cảm biến</CardTitle>
+            <CardDescription>Các lần đo gần đây của thiết bị đã chọn</CardDescription>
+          </CardHeader>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Recent sensor readings for the selected device
-            </p>
-          </div>
-
-          <div className="mt-4">
+          <CardContent>
             <SensorHistoryTable
               readings={readings}
               currentPage={currentPage}
@@ -442,8 +263,8 @@ export function Dashboard() {
               onPageChange={setCurrentPage}
               isLoading={isLoadingReadings}
             />
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

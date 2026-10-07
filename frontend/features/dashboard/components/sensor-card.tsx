@@ -4,9 +4,12 @@ interface SensorCardProps {
   unit: string;
 }
 
+import { Card, CardContent } from "@/components/ui/card";
+
 export function SensorCard({ label, value, unit }: SensorCardProps) {
   return (
-    <div className="rounded-xl border bg-white p-5">
+    <Card>
+      <CardContent className="p-5">
       <p className="text-sm text-slate-500">{label}</p>
 
       <div className="mt-2 flex items-baseline gap-2">
@@ -14,6 +17,7 @@ export function SensorCard({ label, value, unit }: SensorCardProps) {
 
         <span className="text-sm text-slate-400">{unit}</span>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
