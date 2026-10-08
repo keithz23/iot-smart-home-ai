@@ -2,6 +2,7 @@
 
 import type { SensorReading } from "@/types/sensor";
 import { Button } from "@/components/ui/button";
+import { formatDateTimeVN } from "@/lib/date";
 import {
   Table,
   TableBody,
@@ -58,7 +59,7 @@ export function SensorHistoryTable({
             {readings.map((reading) => (
               <TableRow key={reading.id}>
                 <TableCell className="whitespace-nowrap text-slate-500">
-                  {new Date(reading.recorded_at).toLocaleString("vi-VN")}
+                  {formatDateTimeVN(reading.recorded_at)}
                 </TableCell>
                 <TableCell className="font-medium">
                   {reading.temperature ?? "--"} °C

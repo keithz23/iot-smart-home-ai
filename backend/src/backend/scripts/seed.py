@@ -2,37 +2,57 @@ import asyncio
 
 from sqlalchemy import select
 
+from backend.core.security import hash_password
+from backend.core.config import settings
 from backend.databases.databases import AsyncSessionLocal
 from backend.models.device import Device
+from backend.models.user import User
+
+
+SAMPLE_USERS = (
+    ("admin@example.com", "Admin@123"),
+    ("user@example.com", "User@123"),
+)
 
 
 async def seed():
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Device).where(
-                Device.device_id == "ESP32-001"
+        device_result = await db.execute(
+            select(Device).where(Device.device_id == settings.blynk_device_id)
+        )
+        device = device_result.scalar_one_or_none()
+        if device is None:
+            db.add(
+                Device(
+                    device_id=settings.blynk_device_id,
+                    name="Smart Home ESP32",
+                    location="Living Room",
+                    is_active=True,
+                )
             )
-        )
+            print(f"Created device: {settings.blynk_device_id}")
+        else:
+            print(f"Device already exists: {settings.blynk_device_id}")
 
-        device = result.scalar_one_or_none()
+        for username, password in SAMPLE_USERS:
+            user_result = await db.execute(
+                select(User).where(User.username == username)
+            )
+            user = user_result.scalar_one_or_none()
+            if user is not None:
+                print(f"User already exists: {username}")
+                continue
 
-        if device is not None:
-            print("Device already exists: ESP32-001")
-            return
-
-        device = Device(
-            device_id="ESP32-001",
-            name="Smart Home ESP32",
-            location="Living Room",
-            is_active=True,
-        )
-
-        db.add(device)
+            db.add(
+                User(
+                    username=username,
+                    password_hash=hash_password(password),
+                    is_active=True,
+                )
+            )
+            print(f"Created user: {username}")
 
         await db.commit()
-        await db.refresh(device)
-
-        print(f"Created device: {device.device_id}")
 
 
 if __name__ == "__main__":

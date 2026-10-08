@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 
 import type { Device } from "@/types/device";
+import type { AuditLogListResponse } from "@/types/audit-log";
 import type {
   BlynkStatus,
   SensorReading,
@@ -69,6 +70,14 @@ export async function controlDevice(
   const { data } = await api.post("/blynk/control", {
     device,
     value,
+  });
+
+  return data;
+}
+
+export async function getAuditLogs(page = 1, limit = 10) {
+  const { data } = await api.get<AuditLogListResponse>("/audit-logs", {
+    params: { page, limit },
   });
 
   return data;

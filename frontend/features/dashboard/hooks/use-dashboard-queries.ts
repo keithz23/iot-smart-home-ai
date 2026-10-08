@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   getBlynkStatus,
+  getAuditLogs,
   getDevices,
   getLatestReading,
   getReadingHistory,
@@ -49,12 +50,19 @@ export function useDashboardQueries(
     enabled: activeDeviceId !== null,
   });
 
+  const auditLogsQuery = useQuery({
+    queryKey: ["audit-logs"],
+    queryFn: () => getAuditLogs(1, 10),
+    refetchInterval: 10000,
+  });
+
   const error =
     devicesQuery.error ||
     statusQuery.error ||
     latestReadingQuery.error ||
     historyQuery.error ||
-    readingsQuery.error;
+    readingsQuery.error ||
+    auditLogsQuery.error;
 
   return {
     devices: devicesQuery.data ?? [],
@@ -68,6 +76,8 @@ export function useDashboardQueries(
     isLoadingLatest: latestReadingQuery.isLoading,
     isLoadingHistory: historyQuery.isLoading,
     isLoadingReadings: readingsQuery.isLoading,
+    auditLogs: auditLogsQuery.data?.items ?? [],
+    isLoadingAuditLogs: auditLogsQuery.isLoading,
     error: error ? "Unable to load dashboard data." : null,
     refreshStatus: statusQuery.refetch,
   };
