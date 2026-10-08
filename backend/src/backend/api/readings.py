@@ -11,8 +11,14 @@ from sqlalchemy import func
 
 from backend.databases.databases import get_db
 from backend.models.sensor_reading import SensorReading
+from backend.models.device import Device
 from backend.services.blynk_service import BlynkService
 from backend.services.sensor_reading_service import SensorReadingService
+from backend.core.dependencies import get_current_user
+from backend.core.config import settings
+from backend.models.user import User
+from backend.schemas.audit_logs import AuditLogCreate
+from backend.services.audit_log_service import AuditLogService
 
 router = APIRouter(
     prefix="/readings",
@@ -21,18 +27,64 @@ router = APIRouter(
 
 blynk_service = BlynkService()
 reading_service = SensorReadingService()
+audit_log_service = AuditLogService()
 
 
 @router.post("/sync", response_model=SensorReadingResponse)
 async def sync_reading(
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    status = await blynk_service.get_status()
+    device_result = await db.execute(
+        select(Device).where(
+            Device.device_id == settings.blynk_device_id,
+            Device.is_active.is_(True),
+        )
+    )
+    device = device_result.scalar_one_or_none()
+    if device is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Active device '{settings.blynk_device_id}' "
+                "is not configured"
+            ),
+        )
+
+    try:
+        status = await blynk_service.get_status()
+    except HTTPException as error:
+        await audit_log_service.create_audit_log(
+            db,
+            AuditLogCreate(
+                user_id=current_user.id,
+                device_id=device.id,
+                event_type="sensor_sync_failed",
+                source="system",
+                target=device.device_id,
+                status="failed",
+                error_message=error.detail,
+            ),
+        )
+        raise
 
     reading = await reading_service.create_reading(
         db=db,
-        device_id=1,
+        device_id=device.id,
         status=status,
+    )
+
+    await audit_log_service.create_audit_log(
+        db,
+        AuditLogCreate(
+            user_id=current_user.id,
+            device_id=device.id,
+            event_type="sensor_sync_completed",
+            source="system",
+            target=device.device_id,
+            status="success",
+            metadata_json={"recorded_reading_id": reading.id},
+        ),
     )
 
     return reading
@@ -48,6 +100,7 @@ async def get_latest_reading(
         default=None,
         ge=1,
     ),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(SensorReading)
@@ -86,6 +139,7 @@ async def get_readings(
         default=None,
         ge=1,
     ),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # Base query
@@ -150,6 +204,7 @@ async def get_reading_history(
         ge=1,
         le=1000,
     ),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     

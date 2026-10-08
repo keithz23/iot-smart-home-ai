@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import type { SensorReading } from "@/types/sensor";
+import { formatTimeVN } from "@/lib/date";
 
 interface EnvironmentChartProps {
   readings: SensorReading[];
@@ -18,10 +19,7 @@ interface EnvironmentChartProps {
 
 export function EnvironmentChart({ readings }: EnvironmentChartProps) {
   const data = readings.map((reading) => ({
-    time: new Date(reading.recorded_at).toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    time: formatTimeVN(reading.recorded_at),
     temperature: reading.temperature,
     humidity: reading.humidity,
   }));

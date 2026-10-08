@@ -6,6 +6,8 @@ from fastapi import HTTPException
 
 from backend.databases.databases import get_db
 from backend.models.device import Device
+from backend.core.dependencies import get_current_user
+from backend.models.user import User
 
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
 
 @router.get("", response_model=list[DeviceResponse],)
 async def get_devices(
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -29,6 +32,7 @@ async def get_devices(
 )
 async def get_device(
     device_id: int,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
