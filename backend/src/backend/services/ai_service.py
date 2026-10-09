@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.config import settings
 from backend.models.device import Device
 from backend.models.sensor_reading import SensorReading
-from backend.schemas.ai import AIChatResponse, DeviceActionProposal
+from backend.schemas.ai import AIAnswerResponse, DeviceActionProposal
 from backend.services.knowledge_service import retrieve_knowledge
 
 
@@ -54,7 +54,7 @@ async def build_sensor_context(db: AsyncSession) -> str:
     )
 
 
-async def answer_question(db: AsyncSession, message: str) -> AIChatResponse:
+async def answer_question(db: AsyncSession, message: str) -> AIAnswerResponse:
     provider = settings.ai_provider.lower()
     if provider not in {"openai", "gemini", "groq"}:
         raise HTTPException(
@@ -139,7 +139,7 @@ Never claim an action was executed; it is only a proposal."""
     action = result.get("action")
     if not isinstance(action, dict):
         action = None
-    return AIChatResponse(
+    return AIAnswerResponse(
         answer=str(result.get("answer", "")),
         sources=[str(source) for source in result.get("sources", [])],
         action=DeviceActionProposal.model_validate(action) if action else None,
