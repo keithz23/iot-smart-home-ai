@@ -2,7 +2,7 @@ from backend.schemas.sensor_reading import SensorReadingListResponse, SensorRead
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from math import ceil
 from datetime import datetime
 from fastapi import HTTPException
@@ -12,8 +12,7 @@ from sqlalchemy import func
 from backend.databases.databases import get_db
 from backend.models.sensor_reading import SensorReading
 from backend.models.device import Device
-from backend.services.blynk_service import BlynkService
-from backend.services.sensor_reading_service import SensorReadingService
+from backend.services.blynk_sync_service import BlynkSyncService
 from backend.core.dependencies import get_current_user
 from backend.core.config import settings
 from backend.models.user import User
@@ -25,8 +24,7 @@ router = APIRouter(
     tags=["Sensor Readings"],
 )
 
-blynk_service = BlynkService()
-reading_service = SensorReadingService()
+blynk_sync_service = BlynkSyncService()
 audit_log_service = AuditLogService()
 
 
@@ -52,7 +50,7 @@ async def sync_reading(
         )
 
     try:
-        status = await blynk_service.get_status()
+        reading = await blynk_sync_service.sync_latest_reading(db)
     except HTTPException as error:
         await audit_log_service.create_audit_log(
             db,
@@ -67,12 +65,6 @@ async def sync_reading(
             ),
         )
         raise
-
-    reading = await reading_service.create_reading(
-        db=db,
-        device_id=device.id,
-        status=status,
-    )
 
     await audit_log_service.create_audit_log(
         db,
